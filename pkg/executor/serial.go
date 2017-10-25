@@ -65,15 +65,9 @@ func (s *SerialExecutor) Format(body []byte) (*ExecutorResponse, error) {
 	usr := viper.GetString("runuser")
 	s.lock.Lock()
 	start := time.Now()
-	out, e := exec.Command("sudo", "-u", usr, cmd, "fmt", f).CombinedOutput()
+	out, _ := exec.Command("sudo", "-u", usr, cmd, "fmt", f).CombinedOutput()
 	end := time.Now()
 	s.lock.Unlock()
-	if e != nil {
-		logrus.Info(e.Error)
-		logrus.Info(string(out))
-		return nil, fmt.Errorf("%s - %s", e.Error(), string(out))
-	}
-	logrus.Info(string(out))
 
 	formatted, e := ioutil.ReadFile(f)
 	if e != nil {
@@ -100,14 +94,9 @@ func (s *SerialExecutor) Run(body []byte) (*ExecutorResponse, error) {
 	usr := viper.GetString("runuser")
 	s.lock.Lock()
 	start := time.Now()
-	out, e := exec.Command("sudo", "-u", usr, cmd, "run", f).CombinedOutput()
+	out, _ := exec.Command("sudo", "-u", usr, cmd, "run", f).CombinedOutput()
 	end := time.Now()
 	s.lock.Unlock()
-	if e != nil {
-		logrus.Info(e.Error)
-		logrus.Info(string(out))
-		return nil, fmt.Errorf("%s - %s", e.Error(), string(out))
-	}
 	response := ExecutorResponse{
 		RunOutput:  string(out),
 		ExecTimeUS: end.Nanosecond() - start.Nanosecond(),
