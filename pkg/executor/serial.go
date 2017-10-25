@@ -25,8 +25,9 @@ type ExecutorResponse struct {
 }
 
 func NewSerialExecutor() *SerialExecutor {
-
+	var lock = &sync.Mutex{}
 	s := SerialExecutor{}
+	s.lock = lock
 	return &s
 }
 

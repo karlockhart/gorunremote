@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/karlockhart/pkg/executor"
+	"github.com/karlockhart/gorunremote/pkg/executor"
 	"github.com/labstack/echo"
 )
 
