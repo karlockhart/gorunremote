@@ -7,15 +7,25 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 type SerialExecutor struct {
+	lock *sync.Mutex
+}
+
+type ExecutorResponse struct {
+	Body       string `json:"code,omitempty"`
+	RunOutput  string `json:"output"`
+	ExecTimeUS int    `json:"runtime_us"`
 }
 
 func NewSerialExecutor() *SerialExecutor {
+
 	s := SerialExecutor{}
 	return &s
 }
@@ -43,16 +53,20 @@ func (s *SerialExecutor) makeTempFile(body []byte) (string, error) {
 
 }
 
-func (s *SerialExecutor) Format(body []byte) ([]byte, error) {
+func (s *SerialExecutor) Format(body []byte) (*ExecutorResponse, error) {
 	f, e := s.makeTempFile(body)
 	if e != nil {
 		return nil, e
 	}
 	logrus.Info(f)
 
-	cmd := viper.GetString("gocmd")
-	out, e := exec.Command(cmd, "fmt", f).CombinedOutput()
-
+	cmd := viper.GetString("gobinlocation")
+	usr := viper.GetString("runuser")
+	s.lock.Lock()
+	start := time.Now()
+	out, e := exec.Command("sudo", "-u", usr, cmd, "fmt", f).CombinedOutput()
+	end := time.Now()
+	s.lock.Unlock()
 	if e != nil {
 		logrus.Info(e.Error)
 		logrus.Info(string(out))
@@ -65,25 +79,38 @@ func (s *SerialExecutor) Format(body []byte) ([]byte, error) {
 		return nil, e
 	}
 
-	return formatted, nil
+	response := ExecutorResponse{
+		Body:       string(formatted),
+		RunOutput:  string(out),
+		ExecTimeUS: end.Nanosecond() - start.Nanosecond(),
+	}
+
+	return &response, nil
 }
 
-func (s *SerialExecutor) Run(body []byte) ([]byte, error) {
+func (s *SerialExecutor) Run(body []byte) (*ExecutorResponse, error) {
 	f, e := s.makeTempFile(body)
 	if e != nil {
 		return nil, e
 	}
 	logrus.Info(f)
 
-	cmd := viper.GetString("gocmd")
-	out, e := exec.Command("sudo", "-u", cmd, "run", f).CombinedOutput()
-
+	cmd := viper.GetString("gobinlocation")
+	usr := viper.GetString("runuser")
+	s.lock.Lock()
+	start := time.Now()
+	out, e := exec.Command("sudo", "-u", usr, cmd, "run", f).CombinedOutput()
+	end := time.Now()
+	s.lock.Unlock()
 	if e != nil {
 		logrus.Info(e.Error)
 		logrus.Info(string(out))
 		return nil, fmt.Errorf("%s - %s", e.Error(), string(out))
 	}
-	logrus.Info(string(out))
+	response := ExecutorResponse{
+		RunOutput:  string(out),
+		ExecTimeUS: end.Nanosecond() - start.Nanosecond(),
+	}
 
-	return out, nil
+	return &response, nil
 }

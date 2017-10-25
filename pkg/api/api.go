@@ -45,7 +45,7 @@ func (a *GoRunRemoteApi) Format(c echo.Context) error {
 	if e != nil {
 		return c.String(http.StatusInternalServerError, e.Error())
 	}
-	return c.String(http.StatusOK, string(f))
+	return c.JSON(http.StatusOK, f)
 }
 
 func (a *GoRunRemoteApi) Run(c echo.Context) error {
@@ -57,5 +57,5 @@ func (a *GoRunRemoteApi) Run(c echo.Context) error {
 	if e != nil {
 		return c.String(http.StatusInternalServerError, e.Error())
 	}
-	return c.String(http.StatusOK, string(f))
+	return c.JSON(http.StatusOK, f)
 }

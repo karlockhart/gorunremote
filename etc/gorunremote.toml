@@ -1,2 +1,3 @@
-runuser = "kalockhart"
-codedir = "/home/kalockhart/codedir"
+runuser = "eulerexec"
+codedir = "/home/eulerexec/codedir"
+gobinlocation = "/usr/local/go/bin/go"
