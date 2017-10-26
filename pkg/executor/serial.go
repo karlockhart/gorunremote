@@ -14,17 +14,20 @@ import (
 	"github.com/spf13/viper"
 )
 
+// SerialExecutor allows one remote program to run at a time
 type SerialExecutor struct {
 	lock *sync.Mutex
 }
 
-type ExecutorResponse struct {
+// Response stores stats about the code run
+type Response struct {
 	Hash       string `json:"hash"`
 	Body       string `json:"code,omitempty"`
 	RunOutput  string `json:"output"`
 	ExecTimeUS int    `json:"runtime_us"`
 }
 
+// NewSerialExecutor returns a serial executor
 func NewSerialExecutor() *SerialExecutor {
 	var lock = &sync.Mutex{}
 	s := SerialExecutor{}
@@ -32,7 +35,7 @@ func NewSerialExecutor() *SerialExecutor {
 	return &s
 }
 
-func (s *SerialExecutor) makeTempFile(body []byte) (string, error) {
+func (s *SerialExecutor) makeTempFile(body []byte) (string, string, error) {
 	hash := md5.New()
 	hash.Write(body)
 	hashed := hash.Sum(nil)
@@ -43,26 +46,27 @@ func (s *SerialExecutor) makeTempFile(body []byte) (string, error) {
 
 	if e != nil {
 		logrus.Error(e)
-		return "", e
+		return "", "", e
 	}
 
 	_, e = f.Write(body)
 	if e != nil {
-		return "", e
+		return "", "", e
 	}
 
-	return f.Name(), nil
+	return f.Name(), string(hashed), nil
 
 }
 
-func (s *SerialExecutor) Load(hash string) (*ExecutorResponse, error) {
-
-	source, e := ioutil.ReadFile(hash)
+// Load a previouly run code file
+func (s *SerialExecutor) Load(hash string) (*Response, error) {
+	codeDir := strings.TrimRight(viper.GetString("codedir"), "/")
+	source, e := ioutil.ReadFile(fmt.Sprintf("%s/%s.go", codeDir, hash))
 	if e != nil {
 		return nil, e
 	}
 
-	response := ExecutorResponse{
+	response := Response{
 		Hash: hash,
 		Body: string(source),
 	}
@@ -70,8 +74,9 @@ func (s *SerialExecutor) Load(hash string) (*ExecutorResponse, error) {
 	return &response, nil
 }
 
-func (s *SerialExecutor) Format(body []byte) (*ExecutorResponse, error) {
-	f, e := s.makeTempFile(body)
+// Format runs the body through Go Fmt
+func (s *SerialExecutor) Format(body []byte) (*Response, error) {
+	f, h, e := s.makeTempFile(body)
 	if e != nil {
 		return nil, e
 	}
@@ -90,8 +95,8 @@ func (s *SerialExecutor) Format(body []byte) (*ExecutorResponse, error) {
 		return nil, e
 	}
 
-	response := ExecutorResponse{
-		Hash:       f,
+	response := Response{
+		Hash:       h,
 		Body:       string(formatted),
 		RunOutput:  string(out),
 		ExecTimeUS: end.Nanosecond() - start.Nanosecond(),
@@ -100,8 +105,9 @@ func (s *SerialExecutor) Format(body []byte) (*ExecutorResponse, error) {
 	return &response, nil
 }
 
-func (s *SerialExecutor) Run(body []byte) (*ExecutorResponse, error) {
-	f, e := s.makeTempFile(body)
+// Run the code
+func (s *SerialExecutor) Run(body []byte) (*Response, error) {
+	f, h, e := s.makeTempFile(body)
 	if e != nil {
 		return nil, e
 	}
@@ -114,8 +120,8 @@ func (s *SerialExecutor) Run(body []byte) (*ExecutorResponse, error) {
 	out, _ := exec.Command("sudo", "-u", usr, cmd, "run", f).CombinedOutput()
 	end := time.Now()
 	s.lock.Unlock()
-	response := ExecutorResponse{
-		Hash:       f,
+	response := Response{
+		Hash:       h,
 		RunOutput:  string(out),
 		ExecTimeUS: end.Nanosecond() - start.Nanosecond(),
 	}
