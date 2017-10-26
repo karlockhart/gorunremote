@@ -69,9 +69,9 @@ func (s *SerialExecutor) Load(hash string) (*Response, error) {
 	}
 
 	response := Response{
-		Hash: hash,
-		Body: string(source),
-		ExecTimeUS: end.Nanosecond() - start.Nanosecond()
+		Hash:       hash,
+		Body:       string(source),
+		ExecTimeUS: end.Nanosecond() - start.Nanosecond(),
 	}
 
 	return &response, nil
