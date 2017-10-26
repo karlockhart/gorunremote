@@ -20,7 +20,7 @@ func NewGoRunRemoteApi() *GoRunRemoteApi {
 
 	api.exe = executor.NewSerialExecutor()
 	api.ech.Static("/", "app/dist")
-	api.ech.POST("api/go/lint", api.Lint)
+	api.ech.GET("api/go/load/", api.Load)
 	api.ech.POST("api/go/fmt", api.Format)
 	api.ech.POST("api/go/run", api.Run)
 
@@ -32,8 +32,14 @@ func (a *GoRunRemoteApi) Start(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (a *GoRunRemoteApi) Lint(c echo.Context) error {
-	return c.String(http.StatusOK, "Lint")
+func (a *GoRunRemoteApi) Load(c echo.Context) error {
+	hash := c.FormValue("hash")
+
+	f, e := a.exe.Load(hash)
+	if e != nil {
+		return c.String(http.StatusInternalServerError, e.Error())
+	}
+	return c.JSON(http.StatusOK, f)
 }
 
 func (a *GoRunRemoteApi) Format(c echo.Context) error {

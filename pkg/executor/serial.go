@@ -19,6 +19,7 @@ type SerialExecutor struct {
 }
 
 type ExecutorResponse struct {
+	Hash       string `json:"hash"`
 	Body       string `json:"code,omitempty"`
 	RunOutput  string `json:"output"`
 	ExecTimeUS int    `json:"runtime_us"`
@@ -54,6 +55,21 @@ func (s *SerialExecutor) makeTempFile(body []byte) (string, error) {
 
 }
 
+func (s *SerialExecutor) Load(hash string) (*ExecutorResponse, error) {
+
+	source, e := ioutil.ReadFile(hash)
+	if e != nil {
+		return nil, e
+	}
+
+	response := ExecutorResponse{
+		Hash: hash,
+		Body: string(source),
+	}
+
+	return &response, nil
+}
+
 func (s *SerialExecutor) Format(body []byte) (*ExecutorResponse, error) {
 	f, e := s.makeTempFile(body)
 	if e != nil {
@@ -75,6 +91,7 @@ func (s *SerialExecutor) Format(body []byte) (*ExecutorResponse, error) {
 	}
 
 	response := ExecutorResponse{
+		Hash:       f,
 		Body:       string(formatted),
 		RunOutput:  string(out),
 		ExecTimeUS: end.Nanosecond() - start.Nanosecond(),
@@ -98,6 +115,7 @@ func (s *SerialExecutor) Run(body []byte) (*ExecutorResponse, error) {
 	end := time.Now()
 	s.lock.Unlock()
 	response := ExecutorResponse{
+		Hash:       f,
 		RunOutput:  string(out),
 		ExecTimeUS: end.Nanosecond() - start.Nanosecond(),
 	}
