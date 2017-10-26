@@ -39,10 +39,10 @@ func (s *SerialExecutor) makeTempFile(body []byte) (string, string, error) {
 	hash := md5.New()
 	hash.Write(body)
 	hashed := hash.Sum(nil)
-	name := fmt.Sprintf("%x", hashed)
-	logrus.Info(name)
+	nameHash := fmt.Sprintf("%x", hashed)
+	logrus.Info(nameHash)
 	codeDir := strings.TrimRight(viper.GetString("codedir"), "/")
-	f, e := os.Create(fmt.Sprintf("%s/%s.go", codeDir, name))
+	f, e := os.Create(fmt.Sprintf("%s/%s.go", codeDir, nameHash))
 
 	if e != nil {
 		logrus.Error(e)
@@ -54,7 +54,7 @@ func (s *SerialExecutor) makeTempFile(body []byte) (string, string, error) {
 		return "", "", e
 	}
 
-	return f.Name(), string(hashed), nil
+	return f.Name(), nameHash, nil
 
 }
 
