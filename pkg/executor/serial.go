@@ -24,7 +24,7 @@ type Response struct {
 	Hash       string `json:"hash"`
 	Body       string `json:"code,omitempty"`
 	RunOutput  string `json:"output"`
-	ExecTimeUS int    `json:"runtime_us"`
+	ExecTimeUS int    `json:"buildandruntime_us"`
 }
 
 // NewSerialExecutor returns a serial executor
@@ -60,8 +60,10 @@ func (s *SerialExecutor) makeTempFile(body []byte) (string, string, error) {
 
 // Load a previouly run code file
 func (s *SerialExecutor) Load(hash string) (*Response, error) {
+	start := time.Now()
 	codeDir := strings.TrimRight(viper.GetString("codedir"), "/")
 	source, e := ioutil.ReadFile(fmt.Sprintf("%s/%s.go", codeDir, hash))
+	end := time.Now()
 	if e != nil {
 		return nil, e
 	}
@@ -69,6 +71,7 @@ func (s *SerialExecutor) Load(hash string) (*Response, error) {
 	response := Response{
 		Hash: hash,
 		Body: string(source),
+		ExecTimeUS: end.Nanosecond() - start.Nanosecond()
 	}
 
 	return &response, nil
@@ -84,12 +87,11 @@ func (s *SerialExecutor) Format(body []byte) (*Response, error) {
 
 	cmd := viper.GetString("gobinlocation")
 	usr := viper.GetString("runuser")
-	s.lock.Lock()
 	start := time.Now()
+	s.lock.Lock()
 	out, _ := exec.Command("sudo", "-u", usr, cmd, "fmt", f).CombinedOutput()
-	end := time.Now()
 	s.lock.Unlock()
-
+	end := time.Now()
 	formatted, e := ioutil.ReadFile(f)
 	if e != nil {
 		return nil, e
@@ -115,11 +117,11 @@ func (s *SerialExecutor) Run(body []byte) (*Response, error) {
 
 	cmd := viper.GetString("gobinlocation")
 	usr := viper.GetString("runuser")
-	s.lock.Lock()
 	start := time.Now()
+	s.lock.Lock()
 	out, _ := exec.Command("sudo", "-u", usr, cmd, "run", f).CombinedOutput()
-	end := time.Now()
 	s.lock.Unlock()
+	end := time.Now()
 	response := Response{
 		Hash:       h,
 		RunOutput:  string(out),
