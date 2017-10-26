@@ -33,7 +33,7 @@ func (a *GoRunRemoteApi) Start(wg *sync.WaitGroup) {
 }
 
 func (a *GoRunRemoteApi) Load(c echo.Context) error {
-	hash := c.FormValue("hash")
+	hash := c.QueryParam("hash")
 
 	f, e := a.exe.Load(hash)
 	if e != nil {
