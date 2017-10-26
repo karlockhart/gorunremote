@@ -20,7 +20,7 @@ func NewGoRunRemoteApi() *GoRunRemoteApi {
 
 	api.exe = executor.NewSerialExecutor()
 	api.ech.Static("/", "app/dist")
-	api.ech.GET("api/go/load/", api.Load)
+	api.ech.GET("api/go/load", api.Load)
 	api.ech.POST("api/go/fmt", api.Format)
 	api.ech.POST("api/go/run", api.Run)
 
